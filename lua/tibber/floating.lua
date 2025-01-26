@@ -53,12 +53,17 @@ end
 
 
 --- Toggle last opened floating window
+---@param curr_data table
 --- -> Create a new floating window if necessary
-M.toggle_window = function()
+M.toggle_window = function(curr_data)
     local valid_buffer = vim.api.nvim_buf_is_valid(M.state.buf_nr)
     if not valid_buffer then
         create_new_floating_buffer()
+
+        -- Add data to buffer
+        vim.api.nvim_buf_set_lines(M.state.buf_nr, 0, 1, false, curr_data)
     end
+
 
     local valid_open_win = M.state.win_open and M.state.win_id ~= nil
     if valid_open_win then
@@ -68,9 +73,6 @@ M.toggle_window = function()
     end
 
 
-    -- TODO: add data
-    local data = {}
-    vim.api.nvim_buf_set_lines(M.state.buf_nr, 0, 1, false, data)
 
     local win_title = "Pricing"
     M.state.win_id = vim.api.nvim_open_win(M.state.buf_nr, true, get_win_config(win_title))

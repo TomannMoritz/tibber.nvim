@@ -96,7 +96,6 @@ local query_price_data = function()
     local curl_command = curl_query(query_body)
 
     local query_handle = io.popen(curl_command)
-    print(vim.inspect(query_handle))
 
     if query_handle == nil then return "" end
 
