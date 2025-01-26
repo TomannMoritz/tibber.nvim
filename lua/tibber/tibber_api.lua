@@ -1,7 +1,18 @@
 local dotenv = require("lua-dotenv")
+local json = require "JSON"
 
 
 local M = {}
+
+
+---@class homes_data
+---@field homes table
+
+
+---@type homes_data
+local homes_data = {
+    homes = {}
+}
 
 
 ---@class environment
@@ -20,7 +31,7 @@ local env = {
 ---@return string query_body
 local query_price_info = function()
     local query_body = [[
-        { "query": "{viewer { homes { currentSubscription { priceInfo { tomorrow { total } } } } } }" } ]]
+        { "query": "{viewer { homes { currentSubscription { priceInfo { today { total } } } } } }" } ]]
 
     return query_body
 end
@@ -38,23 +49,43 @@ local curl_query = function(query_body)
 end
 
 
---- Filter out unnecessary json keys
+
+--- Combine energy data for today and tomorrow into one table
+---@param priceInfo any
+---@return table
+local combine_days = function(priceInfo)
+    local energy_prices = {}
+    -- Today
+    if priceInfo.today ~= nil then
+        for _, price in ipairs(priceInfo.today) do
+            table.insert(energy_prices, price)
+        end
+    end
+
+    -- Tomorrow
+    if priceInfo.tomorrow ~= nil then
+        for _, price in ipairs(priceInfo.tomorrow) do
+            table.insert(energy_prices, price)
+        end
+    end
+
+    return energy_prices
+end
+
+
+--- Create a lua table from the priceInfo json data
+--- -> Filter out unnecessary json keys
 ---@param query_result string
----@return string
-local filter_price_info = function(query_result)
-    local jq_filter = ".data.viewer.homes[].currentSubscription.priceInfo"
-    local jq_command = string.format([[
-    echo %q | jq %s]],
-    query_result, jq_filter)
+local price_info_table = function(query_result)
+    local decode = json:decode(query_result)
 
-    local jq_handle = io.popen(jq_command)
-    if jq_handle == nil then return "" end
+    local homes = decode.data.viewer.homes
+    homes_data = { homes = {}}
 
-    -- read the whole file
-    local result = jq_handle:read("*a")
-    jq_handle:close()
-
-    return result
+    for _, home in ipairs(homes) do
+        local energy_prices = combine_days(home.currentSubscription.priceInfo)
+        table.insert(homes_data.homes, energy_prices)
+    end
 end
 
 
@@ -103,7 +134,7 @@ end
 
 
 --- Get energy price data
----@return string filtered_data
+---@return homes_data filtered_data
 M.get_price_data = function()
     if not valid_env() then
         load_env()
@@ -111,9 +142,9 @@ M.get_price_data = function()
     end
 
     local query_result = query_price_data()
-    local filtered_data = filter_price_info(query_result)
+    price_info_table(query_result)
 
-    return filtered_data
+    return homes_data
 end
 
 
