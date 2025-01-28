@@ -45,7 +45,7 @@ end
 
 --- Create a new buffer to store data for the floating window
 --- Resets the floating window state (buffer, window id and open status)
-local function create_new_floating_buffer()
+M._create_new_floating_buffer = function()
     M.state.buf_nr = vim.api.nvim_create_buf(true, true)
     M.state.win_id = -1
     M.state.win_open = false
@@ -58,7 +58,7 @@ end
 M.toggle_window = function(curr_data)
     local valid_buffer = vim.api.nvim_buf_is_valid(M.state.buf_nr)
     if not valid_buffer then
-        create_new_floating_buffer()
+        M._create_new_floating_buffer()
 
         -- Add data to buffer
         vim.api.nvim_buf_set_lines(M.state.buf_nr, 0, 1, false, curr_data)

@@ -31,7 +31,7 @@ local env = {
 ---@return string query_body
 local query_price_info = function()
     local query_body = [[
-        { "query": "{viewer { homes { currentSubscription { priceInfo { today { total } } } } } }" } ]]
+        { "query": "{viewer { homes { currentSubscription { priceInfo { today { total }, tomorrow { total } } } } } }" } ]]
 
     return query_body
 end
@@ -51,9 +51,9 @@ end
 
 
 --- Combine energy data for today and tomorrow into one table
----@param priceInfo any
+---@param priceInfo table
 ---@return table
-local combine_days = function(priceInfo)
+M._combine_days = function(priceInfo)
     local energy_prices = {}
     -- Today
     if priceInfo.today ~= nil then
@@ -83,7 +83,7 @@ local price_info_table = function(query_result)
     homes_data = { homes = {}}
 
     for _, home in ipairs(homes) do
-        local energy_prices = combine_days(home.currentSubscription.priceInfo)
+        local energy_prices = M._combine_days(home.currentSubscription.priceInfo)
         table.insert(homes_data.homes, energy_prices)
     end
 end
