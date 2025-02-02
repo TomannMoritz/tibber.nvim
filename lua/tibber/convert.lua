@@ -1,27 +1,27 @@
+local Config = {}
+
+
 local M = {}
 
 local SPACE = " "
 local EMPTY = ""
-local BAR_CHAR_TOP = "_"
-local BAR_CHAR_SIDE = "|"
-local BAR_CHAR_INSIDE = "."
 
 local SECONDS_A_MINUTE = 60
 local MINUTES_A_HOUR = 60
 local HOURS_A_DAY = 24
 local SECONDS_A_DAY = SECONDS_A_MINUTE * MINUTES_A_HOUR * HOURS_A_DAY
 
+local CENTS_A_EURO = 100
+
 ---@class curr_price_info
----@field min integer
----@field max integer
+---@field y_space integer
 ---@field v_scaling integer
 ---@field h_scaling integer
 
 
 ---@type curr_price_info
 local curr_price_info = {
-    min = 0,
-    max = 0,
+    y_space = 0,
     v_scaling = 0,
     h_scaling = 0
 }
@@ -39,46 +39,37 @@ end
 
 --- Calculate the minimum and maximum energy pricing
 ---@param home_energy_data table
----@return number min_price
 ---@return number max_price
-local function min_max_price(home_energy_data)
-    local min_price = 0
+local function get_max_price(home_energy_data)
     local max_price = 0
 
     for _, price in ipairs(home_energy_data) do
         local curr_price = tonumber(price.total) or 0
-
-        if (min_price == 0 or curr_price < min_price) then
-            min_price = curr_price
-        end
 
         if (max_price == 0 or curr_price > max_price) then
             max_price = curr_price
         end
     end
 
-    return min_price, max_price
+    return max_price
 end
 
 
 --- Set information for converting energy prices
 ---@param home_energy_data table
----@param y_offset number
-local function set_price_info(home_energy_data, y_offset)
-    local min_price, max_price = min_max_price(home_energy_data)
+local function set_price_info(home_energy_data)
+    local max_price = get_max_price(home_energy_data)
+    local add_line_info = 5
+    if (vim.api.nvim_win_get_height(0) - Config.Height_Offset <= 0) then add_line_info = 0 end
 
-    curr_price_info.v_scaling = ((vim.api.nvim_win_get_height(0) - y_offset) / max_price) or 50
-    curr_price_info.h_scaling = (vim.api.nvim_win_get_width(0) / #home_energy_data) or 50
+    max_price = math.max(max_price, Config.Min_Bar_Height / CENTS_A_EURO)
 
-    curr_price_info.v_scaling = math.floor(curr_price_info.v_scaling)
-    curr_price_info.h_scaling = math.floor(curr_price_info.h_scaling)
+    curr_price_info.v_scaling = math.floor((vim.api.nvim_win_get_height(0) - Config.Height_Offset - add_line_info) / max_price)
+    curr_price_info.h_scaling = math.floor(vim.api.nvim_win_get_width(0) / #home_energy_data)
 
-    min_price = min_price * curr_price_info.v_scaling
-    max_price = max_price * curr_price_info.v_scaling
+    curr_price_info.h_scaling = math.max(curr_price_info.h_scaling, Config.Min_Bar_Width)
 
-    curr_price_info.min = tonumber(math.floor(min_price)) or 0
-    curr_price_info.max = tonumber(math.floor(max_price + 0.5)) or 0
-
+    curr_price_info.y_space = Config.Height_Offset + math.floor(max_price * curr_price_info.v_scaling)
 end
 
 
@@ -96,7 +87,7 @@ local function left_bar_up(home_energy_data, price_curr_line, hour_index, price_
 
 
     if price_curr_line >= prev_price and price_curr_line < price_curr_hour then
-        return BAR_CHAR_SIDE
+        return Config.Char_Bar_Side
     end
 
     return EMPTY
@@ -117,7 +108,7 @@ local function right_bar_down(home_energy_data, price_curr_line, hour_index, pri
 
 
     if price_curr_line < price_curr_hour and price_curr_line >= price_next_hour then
-        return BAR_CHAR_SIDE
+        return Config.Char_Bar_Side
     end
 
     return EMPTY
@@ -167,7 +158,7 @@ local function get_info_days(home_energy_data)
 
         local spacing = (space_line - #day_str - 2) / 2
 
-        day_str = BAR_CHAR_SIDE .. string.rep(SPACE, spacing) .. day_str .. string.rep(SPACE, spacing) .. BAR_CHAR_SIDE
+        day_str = Config.Char_Bar_Side .. string.rep(SPACE, spacing) .. day_str .. string.rep(SPACE, spacing) .. Config.Char_Bar_Side
         info_days = info_days .. day_str
     end
 
@@ -179,7 +170,7 @@ end
 ---@param parsed_pricing table
 ---@param home_energy_data table
 local function bottom_info(parsed_pricing, home_energy_data)
-    local x_axis = string.rep(BAR_CHAR_TOP, curr_price_info.h_scaling * #home_energy_data)
+    local x_axis = string.rep(Config.Char_Bar_Top, curr_price_info.h_scaling * #home_energy_data)
     table.insert(parsed_pricing, x_axis)
 
 
@@ -195,23 +186,22 @@ end
 --- Convert energy pricing data
 ---@param home_energy_data table
 ---@return table
-M.convert_data = function(home_energy_data)
-    local y_offset = 5
-    set_price_info(home_energy_data, y_offset)
+M.convert_data = function(home_energy_data, config)
+    Config = config
 
+    set_price_info(home_energy_data)
 
     local parsed_pricing = {}
-    local y_space = math.floor(y_offset / curr_price_info.v_scaling) + curr_price_info.max
 
-    for i = 0, y_space, 1 do
+    for i = 0, curr_price_info.y_space, 1 do
         local line = ""
-        local price_curr_line = y_space - i
+        local price_curr_line = curr_price_info.y_space - i
 
         for hour_index, price_curr_hour in ipairs(home_energy_data) do
             price_curr_hour = tonumber(math.floor(price_curr_hour.total * curr_price_info.v_scaling)) or -1
 
             if price_curr_line == price_curr_hour then
-                line = line .. string.rep(BAR_CHAR_TOP, curr_price_info.h_scaling)
+                line = line .. string.rep(Config.Char_Bar_Top, curr_price_info.h_scaling)
                 goto continue
             end
 
@@ -227,7 +217,7 @@ M.convert_data = function(home_energy_data)
             -- Add mid section
             local mid_section = SPACE
             if hour_index % 2 == 0 and price_curr_line < price_curr_hour then
-                mid_section = BAR_CHAR_INSIDE
+                mid_section = Config.Char_Bar_Inside
             end
             if char_space_left > 1 then
                 line = line .. string.rep(mid_section, char_space_left - 1)
