@@ -254,22 +254,29 @@ local function add_y_axis(parsed_pricing)
     local parsed_diagram = {}
     local price_prev_line = 0
     local num_step = 10
+    local space_y_axis = 5
 
     for i, line in ipairs(parsed_pricing) do
         local price_curr_line = curr_price_info.y_space - i + Config.Height_Offset - 1
         price_curr_line = math.floor(price_curr_line / (curr_price_info.v_scaling / CENTS_A_EURO))
 
-        if price_curr_line < 0 or price_curr_line % num_step ~= 0 then
+        if price_curr_line < 0 then
+            table.insert(parsed_diagram, string.rep(SPACE, space_y_axis) .. Config.Char_Bar_Side .. line)
+            goto continue
+        end
+
+        if price_curr_line % num_step ~= 0 then
             local missed_number = math.floor(price_prev_line / num_step) - math.floor(price_curr_line / num_step) > 0
             missed_number = missed_number and price_prev_line % num_step ~= 0
 
             if not missed_number then
-                table.insert(parsed_diagram, string.rep(SPACE, 5) .. Config.Char_Bar_Side .. line)
+                table.insert(parsed_diagram, string.rep(SPACE, space_y_axis) .. Config.Char_Bar_Side .. line)
                 goto continue
             end
         end
 
-        line = pad_left(price_curr_line, SPACE, 3) .. SPACE .. DASH .. Config.Char_Bar_Side .. line
+
+        line = pad_left(price_curr_line, SPACE, space_y_axis - 2) .. SPACE .. DASH .. Config.Char_Bar_Side .. line
         table.insert(parsed_diagram, line)
 
         ::continue::
