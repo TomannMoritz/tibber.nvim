@@ -4,6 +4,7 @@ local Config = {}
 local M = {}
 
 local SPACE = " "
+local DASH = "-"
 local EMPTY = ""
 
 local SECONDS_A_MINUTE = 60
@@ -14,6 +15,7 @@ local SECONDS_A_DAY = SECONDS_A_MINUTE * MINUTES_A_HOUR * HOURS_A_DAY
 local CENTS_A_EURO = 100
 
 ---@class curr_price_info
+---@field max_price integer
 ---@field y_space integer
 ---@field v_scaling integer
 ---@field h_scaling integer
@@ -21,21 +23,26 @@ local CENTS_A_EURO = 100
 
 ---@type curr_price_info
 local curr_price_info = {
+    max_price = 0,
     y_space = 0,
     v_scaling = 0,
     h_scaling = 0
 }
 
 
---- Return number string with leading zeros
+--- Return data as string with leading padding on the left
 ---@param value any
+---@param pad_value any
 ---@param positions number
 ---@return string
-local function pad_number(value, positions)
+local function pad_left(value, pad_value, positions)
     local number_str = tostring(value)
+
+    pad_value = pad_value or 0
     positions = positions or 2
-    return string.rep("0", positions - #number_str) .. number_str
+    return string.rep(tostring(pad_value), positions - #number_str) .. number_str
 end
+
 
 --- Calculate the minimum and maximum energy pricing
 ---@param home_energy_data table
@@ -70,6 +77,7 @@ local function set_price_info(home_energy_data)
     curr_price_info.h_scaling = math.max(curr_price_info.h_scaling, Config.Min_Bar_Width)
 
     curr_price_info.y_space = Config.Height_Offset + math.floor(max_price * curr_price_info.v_scaling)
+    curr_price_info.max_price = math.floor(max_price * CENTS_A_EURO + 0.5)
 end
 
 
@@ -156,7 +164,7 @@ local function get_info_days(home_energy_data)
 
     for i = 0, number_days - 1 do
         local day_time = os.date("*t", curr_time + i * SECONDS_A_DAY)
-        local day_str = tostring(day_time.year) .. "-" .. pad_number(day_time.month, 2) .. "-" .. pad_number(day_time.day, 2)
+        local day_str = tostring(day_time.year) .. "-" .. pad_left(day_time.month) .. "-" .. pad_left(day_time.day)
 
         local spacing = (space_line - #day_str - 2) / 2
 
@@ -239,6 +247,38 @@ local function bar_data(parsed_pricing, home_energy_data)
 end
 
 
+--- Return data with y_axis information
+---@param parsed_pricing any
+---@return table parsed_diagram
+local function add_y_axis(parsed_pricing)
+    local parsed_diagram = {}
+    local price_prev_line = 0
+    local num_step = 10
+
+    for i, line in ipairs(parsed_pricing) do
+        local price_curr_line = curr_price_info.y_space - i + Config.Height_Offset - 1
+        price_curr_line = math.floor(price_curr_line / (curr_price_info.v_scaling / CENTS_A_EURO))
+
+        if price_curr_line < 0 or price_curr_line % num_step ~= 0 then
+            local missed_number = math.floor(price_prev_line / num_step) - math.floor(price_curr_line / num_step) > 0
+            missed_number = missed_number and price_prev_line % num_step ~= 0
+
+            if not missed_number then
+                table.insert(parsed_diagram, string.rep(SPACE, 5) .. Config.Char_Bar_Side .. line)
+                goto continue
+            end
+        end
+
+        line = pad_left(price_curr_line, SPACE, 3) .. SPACE .. DASH .. Config.Char_Bar_Side .. line
+        table.insert(parsed_diagram, line)
+
+        ::continue::
+        price_prev_line = price_curr_line
+    end
+    return parsed_diagram
+end
+
+
 --- Convert energy pricing data
 ---@param home_energy_data table
 ---@return table
@@ -254,6 +294,9 @@ M.convert_data = function(home_energy_data, config)
 
     -- Add x-axis information
     bottom_info(parsed_pricing, home_energy_data)
+
+    -- Add y-axis information
+    parsed_pricing = add_y_axis(parsed_pricing)
 
     return parsed_pricing
 end
