@@ -247,6 +247,16 @@ local function bar_data(parsed_pricing, home_energy_data)
 end
 
 
+--- Calculate the price based on the current line index
+---@param curr_index integer
+---@return integer
+M.get_price_curr_line = function(curr_index)
+    local price_curr_line = curr_price_info.y_space - curr_index + Config.Height_Offset - 1
+    price_curr_line = math.floor(price_curr_line / (curr_price_info.v_scaling / CENTS_A_EURO))
+    return price_curr_line
+end
+
+
 --- Return data with y_axis information
 ---@param parsed_pricing any
 ---@return table parsed_diagram
@@ -257,8 +267,7 @@ local function add_y_axis(parsed_pricing)
     local space_y_axis = 5
 
     for i, line in ipairs(parsed_pricing) do
-        local price_curr_line = curr_price_info.y_space - i + Config.Height_Offset - 1
-        price_curr_line = math.floor(price_curr_line / (curr_price_info.v_scaling / CENTS_A_EURO))
+        local price_curr_line = M.get_price_curr_line(i)
 
         if price_curr_line < 0 then
             table.insert(parsed_diagram, string.rep(SPACE, space_y_axis) .. Config.Char_Bar_Side .. line)

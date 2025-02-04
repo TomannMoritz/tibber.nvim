@@ -1,3 +1,6 @@
+local Config = {}
+local convert = require("tibber.convert")
+
 local M = {}
 
 ---@class win_state
@@ -52,10 +55,51 @@ M._create_new_floating_buffer = function()
 end
 
 
+--- Apply highlight groups
+---@param curr_data table
+local function apply_highlight_groups(curr_data)
+    local ns_tibber = vim.api.nvim_create_namespace("tibber")
+    local y_axis_space = 5
+
+    for i, _ in ipairs(curr_data) do
+        local price_curr_line = convert.get_price_curr_line(i)
+        if price_curr_line < 0 then break end
+
+
+        if price_curr_line > Config.Pricing.Extreme_Min then
+            vim.api.nvim_buf_add_highlight(M.state.buf_nr, ns_tibber, "Tibber_Extreme", i, y_axis_space, -1)
+            goto continue
+        end
+
+
+        if price_curr_line > Config.Pricing.High_Min then
+            vim.api.nvim_buf_add_highlight(M.state.buf_nr, ns_tibber, "Tibber_High", i, y_axis_space, -1)
+            goto continue
+        end
+
+
+        if price_curr_line > Config.Pricing.Mid_Min then
+            vim.api.nvim_buf_add_highlight(M.state.buf_nr, ns_tibber, "Tibber_Mid", i, y_axis_space, -1)
+            goto continue
+        end
+
+
+        if price_curr_line > Config.Pricing.Low_Min then
+            vim.api.nvim_buf_add_highlight(M.state.buf_nr, ns_tibber, "Tibber_Low", i, y_axis_space, -1)
+            goto continue
+        end
+
+        ::continue::
+    end
+end
+
+
 --- Toggle last opened floating window
 ---@param curr_data table
 --- -> Create a new floating window if necessary
-M.toggle_window = function(curr_data)
+M.toggle_window = function(curr_data, config)
+    Config = config
+
     local valid_buffer = vim.api.nvim_buf_is_valid(M.state.buf_nr)
     if not valid_buffer then
         M._create_new_floating_buffer()
@@ -73,6 +117,7 @@ M.toggle_window = function(curr_data)
     end
 
 
+    apply_highlight_groups(curr_data)
 
     local win_title = "Pricing"
     M.state.win_id = vim.api.nvim_open_win(M.state.buf_nr, true, get_win_config(win_title))
