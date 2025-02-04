@@ -16,6 +16,16 @@ M.state = {
 }
 
 
+--- Reset the state variables
+local function reset_state()
+    M.state = {
+        buf_nr = -1,
+        win_id = -1,
+        win_open = false
+    }
+end
+
+
 --- Return the config for the floating window
 ---@param win_title string floating window title
 ---@return table
@@ -96,26 +106,31 @@ end
 
 --- Toggle last opened floating window
 ---@param curr_data table
+---@param config table
 --- -> Create a new floating window if necessary
 M.toggle_window = function(curr_data, config)
     Config = config
 
     local valid_buffer = vim.api.nvim_buf_is_valid(M.state.buf_nr)
-    if not valid_buffer then
-        M._create_new_floating_buffer()
-
-        -- Add data to buffer
-        vim.api.nvim_buf_set_lines(M.state.buf_nr, 0, 1, false, curr_data)
-    end
-
-
     local valid_open_win = M.state.win_open and M.state.win_id ~= nil
+
+    -- Close window
     if valid_open_win then
         vim.api.nvim_win_close(M.state.win_id, true)
-        M.state.win_open = false
+
+        if valid_buffer then
+            vim.api.nvim_buf_delete(M.state.buf_nr, { force = true })
+        end
+
+        reset_state()
         return
     end
 
+    -- Create new floating buffer and window
+    reset_state()
+
+    M._create_new_floating_buffer()
+    vim.api.nvim_buf_set_lines(M.state.buf_nr, 0, 1, false, curr_data)
 
     apply_highlight_groups(curr_data)
 
