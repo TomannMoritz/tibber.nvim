@@ -1,4 +1,6 @@
 local Config = {}
+local win_width = 0
+local win_height = 0
 
 
 local M = {}
@@ -67,12 +69,12 @@ end
 local function set_price_info(home_energy_data)
     local max_price = get_max_price(home_energy_data)
     local add_line_info = 5
-    if (vim.api.nvim_win_get_height(0) - Config.Height_Offset <= 0) then add_line_info = 0 end
+    if (win_height - Config.Height_Offset <= 0) then add_line_info = 0 end
 
     max_price = math.max(max_price, Config.Min_Bar_Height / CENTS_A_EURO)
 
-    curr_price_info.v_scaling = math.floor((vim.api.nvim_win_get_height(0) - Config.Height_Offset - add_line_info) / max_price)
-    curr_price_info.h_scaling = math.floor(vim.api.nvim_win_get_width(0) / #home_energy_data)
+    curr_price_info.v_scaling = math.floor((win_height - Config.Height_Offset - add_line_info) / max_price)
+    curr_price_info.h_scaling = math.floor(win_width / #home_energy_data)
 
     curr_price_info.h_scaling = math.max(curr_price_info.h_scaling, Config.Min_Bar_Width)
 
@@ -298,8 +300,11 @@ end
 --- Convert energy pricing data
 ---@param home_energy_data table
 ---@return table
-M.convert_data = function(home_energy_data, config)
+M.convert_data = function(home_energy_data, config, width, height)
     Config = config
+    win_width = width
+    win_height = height
+
 
     set_price_info(home_energy_data)
 

@@ -26,17 +26,36 @@ local function reset_state()
 end
 
 
+--- Return neovim size
+---@return integer nvim_width
+---@return integer nvim_height
+local function get_nvim_size()
+    local status_line_offset = 1
+    local nvim_width = vim.api.nvim_win_get_width(0)
+    local nvim_height = vim.api.nvim_win_get_height(0) - status_line_offset
+
+    return nvim_width, nvim_height
+end
+
+
+--- Return floating window size
+---@return integer win_width
+---@return integer win_height
+M.get_win_size = function(width_percentage, height_percentage)
+    local nvim_width, nvim_height = get_nvim_size()
+
+    local win_width = math.floor(nvim_width * width_percentage / 100)
+    local win_height = math.floor(nvim_height * height_percentage / 100)
+    return win_width, win_height
+end
+
+
 --- Return the config for the floating window
 ---@param win_title string floating window title
 ---@return table
 local function get_win_config(win_title)
-    local status_line_offset = 1
-    local nvim_width = vim.api.nvim_win_get_width(0) - status_line_offset
-    local nvim_height = vim.api.nvim_win_get_height(0) - status_line_offset
-
-    -- TODO: change width and height
-    local win_width = nvim_width;
-    local win_height = nvim_height;
+    local nvim_width, nvim_height = get_nvim_size()
+    local win_width, win_height = M.get_win_size(Config.Win_Width_Percentage, Config.Win_Height_Percentage)
 
     local height_diff = nvim_height - win_height
     local width_diff = nvim_width - win_width

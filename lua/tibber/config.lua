@@ -2,6 +2,8 @@ local M = {}
 
 
 ---@class Tibber.Config
+---@field Win_Width_Percentage integer
+---@field Win_Height_Percentage integer
 ---@field Min_Bar_Height integer
 ---@field Min_Bar_Width integer
 ---@field Height_Offset integer
@@ -28,6 +30,8 @@ local M = {}
 
 ---@type Tibber.Config
 M.Config = {
+    Win_Width_Percentage = 100,
+    Win_Height_Percentage = 100,
     Min_Bar_Height = 70,    -- Minimum covered price range
     Min_Bar_Width = 2,      -- Minimum width of each price/hour
     Height_Offset = 3,      -- Number of empty rows above the maximum price
@@ -49,6 +53,17 @@ M.Config = {
 }
 
 
+--- Return a value in the range (min, max)
+---@param value integer
+---@param min integer
+---@param max integer
+---@return integer
+local function clamp(value, min, max)
+    value = math.max(value, min)
+    value = math.min(value, max)
+    return value
+end
+
 
 --- Merge user config with the default config
 ---@param user_config any
@@ -57,6 +72,9 @@ M.set_config = function(user_config)
     user_config = user_config or {}
 
     M.Config = vim.tbl_deep_extend("force", M.Config, user_config)
+
+    M.Config.Win_Width_Percentage = clamp(M.Config.Win_Width_Percentage, 0, 100)
+    M.Config.Win_Height_Percentage = clamp(M.Config.Win_Height_Percentage, 0, 100)
 
     M.Config.Min_Bar_Height = math.max(M.Config.Min_Bar_Height, 10)
     M.Config.Min_Bar_Width = math.max(M.Config.Min_Bar_Width, 2)
