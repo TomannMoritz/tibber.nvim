@@ -33,8 +33,15 @@ end
 
 
 --- Toggle last opened floating window
-M.toggle_window = function()
-    energy_data = tibber_api.get_price_data()
+---@param requery boolean
+M.toggle_window = function(requery)
+    local closed_window = not floating.state.win_open
+    local is_empty = next(energy_data) == nil
+
+    if (closed_window and requery) or is_empty then
+        energy_data = tibber_api.get_price_data()
+    end
+
     toggle_display()
 end
 
