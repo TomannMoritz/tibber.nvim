@@ -30,25 +30,25 @@ local M = {}
 
 ---@type Tibber.Config
 M.Config = {
-    Win_Width_Percentage = 100,
-    Win_Height_Percentage = 100,
-    Min_Bar_Height = 70,    -- Minimum covered price range
-    Min_Bar_Width = 2,      -- Minimum width of each price/hour
-    Height_Offset = 3,      -- Number of empty rows above the maximum price
-    Char_Bar_Inside = ".",
-    Char_Bar_Side = "|",
-    Char_Bar_Top = "_",
+    Win_Width_Percentage = 100,     -- Floating window width as percentage of total width
+    Win_Height_Percentage = 100,    -- Floating window height as percentage of total height
+    Min_Bar_Height = 70,            -- Minimum covered price range
+    Min_Bar_Width = 2,              -- Minimum width of each price/hour
+    Height_Offset = 3,              -- Number of empty rows above the maximum price
+    Char_Bar_Inside = ".",          -- Filling bar character
+    Char_Bar_Side = "|",            -- Side bar character
+    Char_Bar_Top = "_",             -- Top bar character
     Pricing = {
-        Low_Min = 0,
-        Mid_Min = 25,
-        High_Min = 45,
-        Extreme_Min = 65
+        Low_Min = 0,                -- Minimum energy price to label as LOW pricing
+        Mid_Min = 25,               -- Minimum energy price to label as MID pricing
+        High_Min = 45,              -- Minimum energy price to label as HIGH pricing
+        Extreme_Min = 65            -- Minimum energy price to label as EXTREME pricing
     },
     Pricing_Groups = {
-        Tibber_Low = { fg = '#00b300', bold = true},
-        Tibber_Mid = { fg = '#ffb347', bold = true},
-        Tibber_High = { fg = '#ff6961', bold = true},
-        Tibber_Extreme = { fg = '#b19cd9', bold = true}
+        Tibber_Low = { fg = '#00b300', bold = true},    -- Highlighting of LOW pricing labels
+        Tibber_Mid = { fg = '#ffb347', bold = true},    -- Highlighting of MID pricing labels
+        Tibber_High = { fg = '#ff6961', bold = true},   -- Highlighting of HIGH pricing labels
+        Tibber_Extreme = { fg = '#b19cd9', bold = true} -- Highlighting of EXTREME pricing labels
     }
 }
 
