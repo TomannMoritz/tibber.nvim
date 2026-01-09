@@ -1,5 +1,5 @@
 local dotenv = require("lua-dotenv")
-local json = require "JSON"
+local json = require("tibber.json")
 
 
 local M = {}
@@ -77,7 +77,7 @@ end
 --- -> Filter out unnecessary json keys
 ---@param query_result string
 local price_info_table = function(query_result)
-    local decode = json:decode(query_result)
+    local decode = json.parse(query_result)
 
     local homes = decode.data.viewer.homes
     homes_data = { homes = {}}
