@@ -133,11 +133,14 @@ end
 
 
 --- Get energy price data
----@return homes_data filtered_data
+---@return homes_data|nil filtered_data
 M.get_price_data = function()
     if not valid_env() then
         load_env()
-        return M.get_price_data()
+
+        if not valid_env() then
+            return nil
+        end
     end
 
     local query_result = query_price_data()

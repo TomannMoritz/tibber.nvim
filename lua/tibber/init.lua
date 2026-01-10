@@ -39,7 +39,12 @@ M.toggle_window = function(requery)
     local is_empty = next(energy_data) == nil
 
     if (closed_window and requery) or is_empty then
-        energy_data = tibber_api.get_price_data()
+        local price_result = tibber_api.get_price_data()
+
+        -- invalid env: no data/results
+        if price_result == nil then return end
+
+        energy_data = price_result
     end
 
     toggle_display()
