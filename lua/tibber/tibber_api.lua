@@ -1,4 +1,4 @@
-local dotenv = require("lua-dotenv")
+local dotenv = require("tibber.dotenv")
 local json = require("tibber.json")
 
 
@@ -12,18 +12,6 @@ local M = {}
 ---@type homes_data
 local homes_data = {
     homes = {}
-}
-
-
----@class environment
----@field TIBBER_URL string
----@field API_TOKEN string
-
-
----@type environment
-local env = {
-    API_TOKEN = "",
-    TIBBER_URL = ""
 }
 
 
@@ -41,9 +29,12 @@ end
 ---@param query_body string
 ---@return string
 local curl_query = function(query_body)
+    local api_token = dotenv.get_api_token() or ""
+    local api_url = dotenv.get_api_url() or ""
+
     local curl_command = string.format([[
         curl -s -X POST -H "Authorization: %s" -H "Content-Type: application/json" -d '%s' %s]],
-        env.API_TOKEN, query_body, env.TIBBER_URL)
+        api_token, query_body, api_url)
 
     return curl_command
 end
@@ -107,38 +98,15 @@ local query_price_data = function()
 end
 
 
---- Check if the environment is set
----@return boolean is_valid
-local valid_env = function()
-    return env.API_TOKEN ~= "" and env.TIBBER_URL ~= ""
-end
-
-
---- Load and set the environment variables from the dotenv file
-local load_env = function()
-    -- load variables from: ~/.config/.env
-    dotenv.load_dotenv()
-
-    local api_token = dotenv.get("TIBBER_API_TOKEN")
-    if api_token == nil then print("[!] No Tibber API Token specified") end
-
-    local tibber_url = dotenv.get("TIBBER_URL")
-    if tibber_url == nil then print("[!] No Tibber URL specified") end
-
-    env = {
-        API_TOKEN = api_token or "",
-        TIBBER_URL = tibber_url or "https://api.tibber.com/v1-beta/gql"
-    }
-end
-
-
 --- Get energy price data
 ---@return homes_data|nil filtered_data
 M.get_price_data = function()
-    if not valid_env() then
-        load_env()
+    if not dotenv.is_valid_env() then
+        -- load variables from: ~/.config/.env
+        dotenv.load()
 
-        if not valid_env() then
+        if not dotenv.is_valid_env() then
+            dotenv.log_env()
             return nil
         end
     end
