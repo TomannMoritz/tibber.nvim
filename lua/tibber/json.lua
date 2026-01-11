@@ -6,7 +6,6 @@ local END_SCOPE = '}'
 local START_BRACKET = '%['
 local END_BRACKET = '%]'
 
-local LEAF_NODE = "{}"
 local QUOTE = '"'
 local COLON = ':'
 local EMPTY = ""
@@ -17,8 +16,12 @@ local EMPTY = ""
 --- - End positions mark the EXIT point back to the current layer
 --- Returns an ordered table with a start and end position for each next scope layer
 ---@param layer string
----@return table
+---@return table|nil
 local function get_layer_positions(layer)
+    -- missing json data
+    local invalid_json = string.find(layer, START_SCOPE) == nil
+    if invalid_json then return nil end
+
     local positions = {}
     local depth = 0
 
@@ -40,7 +43,15 @@ local function get_layer_positions(layer)
                 table.insert(positions, i)
             end
         end
+
+        -- to many closing brackets
+        invalid_json = depth < 0
+        if invalid_json then return nil end
     end
+
+    -- missing closing brackets
+    invalid_json = depth ~= 0
+    if invalid_json then return nil end
 
     return positions
 end
@@ -48,17 +59,17 @@ end
 
 --- Extract the first text inside two double quotes
 ---@param text string
----@return string
+---@return string|nil
 local function get_inside_quotes(text)
-    local start_index = string.find(text, QUOTE)
-    if start_index == nil then return EMPTY end
+    local start_index, _ = string.find(text, QUOTE)
+    if start_index == nil then return nil end
 
     -- remove quote character
     start_index = start_index + #QUOTE
 
     local sub_text = string.sub(text, start_index, -1)
     local end_index = string.find(sub_text, QUOTE)
-    if end_index == nil then return EMPTY end
+    if end_index == nil then return nil end
 
     -- remove quote character
     end_index = start_index - #QUOTE + end_index - #QUOTE
@@ -73,14 +84,17 @@ end
 local function insert_data_pair(t, text)
     local index = string.find(text, COLON)
     if index == nil then
-        table.insert({})
+        table.insert(t, {})
         return
     end
 
     local key = string.sub(text, 0, index - 1)
-    key = get_inside_quotes(key)
+    key = get_inside_quotes(key) or EMPTY
 
-    local value = string.sub(text, index + 1, -1)
+    local str_value = string.sub(text, index + 1, -1)
+    local num_value = tonumber(str_value)
+    local value = num_value or str_value
+
     t[key] = value
 end
 
@@ -89,16 +103,23 @@ end
 ---@param t table
 ---@param data string
 local function parse(t, data)
-    local is_leaf_node = data == LEAF_NODE
-    if is_leaf_node then return end
+    local start_data, _ = string.find(data, START_SCOPE)
+    local end_data, _ = string.find(string.reverse(data), END_SCOPE)
+
+    if start_data == nil or end_data == nil then return end
 
     -- remove previous layer scope
+    data = string.sub(data, start_data, -end_data)
     data = string.sub(data, 2, -2)
 
-    local positions = get_layer_positions(data)
-    local is_last_layer = #positions == 0
+    local empty_node = #data == 0
+    if empty_node then return end
 
-    if is_last_layer then
+    -- calculate new recursive layers
+    local positions = get_layer_positions(data)
+
+    -- leaf node
+    if positions == nil then
         insert_data_pair(t, data)
         return
     end
@@ -112,13 +133,13 @@ local function parse(t, data)
 
         -- update table
         local layer_label = string.sub(data, prev_start_pos, start_pos - 1)
-        layer_label = get_inside_quotes(layer_label)
+        local found_label = get_inside_quotes(layer_label)
         local next_table = {}
 
-        if layer_label == EMPTY then
+        if found_label == nil then
             table.insert(t, next_table)
         else
-            t[layer_label] = next_table
+            t[found_label] = next_table
         end
 
         parse(next_table, next_data)
@@ -129,13 +150,17 @@ end
 
 --- Parse json data into a lua table
 ---@param data string
----@return table
+---@return table|nil
 M.parse = function(data)
     local lua_table = {}
 
-    -- repalce json array scopes
+    -- replace json array scopes
     data = string.gsub(data, START_BRACKET, START_SCOPE)
     data = string.gsub(data, END_BRACKET, END_SCOPE)
+
+    local positions = get_layer_positions(data)
+    local invalid_json = positions == nil
+    if invalid_json then return nil end
 
     parse(lua_table, data)
     return lua_table

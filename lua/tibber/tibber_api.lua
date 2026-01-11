@@ -69,6 +69,7 @@ end
 ---@param query_result string
 local price_info_table = function(query_result)
     local decode = json.parse(query_result)
+    if decode == nil then return end
 
     local homes = decode.data.viewer.homes
     homes_data = { homes = {}}
