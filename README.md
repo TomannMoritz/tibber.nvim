@@ -9,13 +9,8 @@ Therefor a Tibber Account/ API Key is required.
 Install with your package manager with the required dependencies.
 
 ### Dependencies
-- [json-lua](https://github.com/tiye/json-lua)
-- [lua-dotenv](https://github.com/rxi/json.lua)
+- [curl](https://github.com/curl/curl)
 
-```bash
-luarocks install json-lua
-luarocks install lua-dotenv
-```
 
 <details>
     <summary><strong>packer.nvim</strong></summary>
