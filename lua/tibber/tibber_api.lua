@@ -3,6 +3,7 @@ local json = require("tibber.json")
 
 
 local M = {}
+local DATA = "data"
 
 
 ---@class homes_data
@@ -67,9 +68,16 @@ end
 --- Create a lua table from the priceInfo json data
 --- -> Filter out unnecessary json keys
 ---@param query_result string
+---@return boolean success
 local price_info_table = function(query_result)
     local decode = json.parse(query_result)
-    if decode == nil then return end
+    if decode == nil then return false end
+
+    -- query error
+    if decode[DATA] == nil then
+        print("[Tibber.nvim] [!] Failed query:\n" .. vim.inspect(decode))
+        return false
+    end
 
     local homes = decode.data.viewer.homes
     homes_data = { homes = {}}
@@ -78,22 +86,31 @@ local price_info_table = function(query_result)
         local energy_prices = M._combine_days(home.currentSubscription.priceInfo)
         table.insert(homes_data.homes, energy_prices)
     end
+
+    return true
 end
 
 
 --- Get energy price data via the tibber api
----@return string
+---@return string|nil result
 local query_price_data = function()
     local query_body = query_price_info()
     local curl_command = curl_query(query_body)
 
     local query_handle = io.popen(curl_command)
 
-    if query_handle == nil then return "" end
+    if query_handle == nil then return nil end
 
     -- read the whole file
     local result = query_handle:read("*a")
     query_handle:close()
+
+    -- no data
+    if #result == 0 then
+        print("[Tibber.nvim] [!] No data received")
+        print("\t- Check your internet connection")
+        return nil
+    end
 
     return result
 end
@@ -113,7 +130,10 @@ M.get_price_data = function()
     end
 
     local query_result = query_price_data()
-    price_info_table(query_result)
+    if query_result == nil then return nil end
+
+    local success = price_info_table(query_result)
+    if not success then return nil end
 
     return homes_data
 end
