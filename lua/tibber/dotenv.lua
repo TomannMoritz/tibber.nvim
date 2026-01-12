@@ -12,11 +12,22 @@ KEYS = {TIBBER_API_TOKEN_KEY, TIBBER_API_URL_KEY}
 
 
 --- Load and store required env data
+---@return boolean loaded_env
 M.load = function()
     local dot_env = {}
 
     local home_path = os.getenv("HOME")
-    io.input(home_path .. DOTENV_FILE_PATH)
+    local file_path = home_path .. DOTENV_FILE_PATH
+
+    -- check if file can be opened
+    local file = io.open(file_path)
+    if file == nil then
+        print("[Tibber.nvim] [!] env file could not be opened")
+        print("\t- Create env file: `" .. file_path .. "`")
+        return false
+    end
+
+    io.input(file_path)
 
     while true do
         local line = io.read("*line")
@@ -46,6 +57,7 @@ M.load = function()
 
     -- reset/clear loaded environment
     M[DOTENV_LABEL] = dot_env
+    return true
 end
 
 

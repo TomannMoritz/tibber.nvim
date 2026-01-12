@@ -121,7 +121,8 @@ end
 M.get_price_data = function()
     if not dotenv.is_valid_env() then
         -- load variables from: ~/.config/.env
-        dotenv.load()
+        local loaded_env = dotenv.load()
+        if not loaded_env then return nil end
 
         if not dotenv.is_valid_env() then
             dotenv.log_env()
