@@ -3,7 +3,7 @@ local tibber_api = require("tibber.tibber_api")
 local json = require("tibber.json")
 
 
-describe("floating window", function()
+describe("[floating window]", function()
     it("create new buffer", function()
         local start_state = {
             buf_nr = -1,
@@ -22,7 +22,7 @@ describe("floating window", function()
 end)
 
 
-describe("tibber_api", function()
+describe("[tibber_api]", function()
     it("combine days: today", function()
         local energy_data = {
             today = {
@@ -82,7 +82,7 @@ end)
 --------------------------------------------------
 -- json
 
-describe("json", function()
+describe("[json]", function()
     it("empty json data", function()
         local json_data = ''
         local solution = nil
@@ -95,17 +95,25 @@ describe("json", function()
         local json_inputs = {
             '{}',
             '{"key": 1}',
+            '{["key": 1]}',
+            '{"key_1": 1, "key_2": 2}',
             '{"layer_1": {"layer_2": {"layer_3": 1}}}',
             '[{"key_1": 1}, {"key_2": 2}, {"key_3": 3}]',
-            '{"data": [{"key_1": 1}, {"key_2": 2}, {"key_3": 3}]}'
+            '{"data": [{"key_1": 1}, {"key_2": 2}, {"key_3": 3}]}',
+            '{"key_1": 1, "key_2": 2, "key_3": {"key_31": 3}, "key_4": 4, "key_5": 5}',
+            '{"key_1": 1, "key_2": {"key_21": 2}, "key_3": 3, "key_4": {"key_41": 4}, "key_5": 5}'
         }
 
         local solutions = {
             {},
             {key = 1},
+            {{key = 1}},
+            {key_1 = 1, key_2 = 2},
             {layer_1 = {layer_2 = {layer_3 = 1}}},
             {{key_1 = 1}, {key_2 = 2}, {key_3 = 3}},
-            {data = {{key_1 = 1}, {key_2 = 2}, {key_3 = 3}}}
+            {data = {{key_1 = 1}, {key_2 = 2}, {key_3 = 3}}},
+            {key_1 = 1, key_2 = 2, key_3= {key_31 = 3}, key_4 = 4, key_5 = 5},
+            {key_1 = 1, key_2 = {key_21 = 2}, key_3= 3, key_4 = {key_41 = 4}, key_5 = 5}
         }
 
         for i, _ in ipairs(json_inputs) do
@@ -116,6 +124,28 @@ describe("json", function()
 
             assert.are.same(solution, result)
         end
+    end)
+
+    it("error msg", function()
+        local json_input = '{"errors":[{"message":"invalid token","locations":[{"line":1,"column":2}],"path":["viewer"],"extensions":{"code":"UNAUTHENTICATED"}}],"data":null}'
+        local solution = {
+            errors = {{
+                message = '"invalid token"',
+                locations = {{
+                    line = 1,
+                    column = 2,
+                }},
+                extensions = {
+                    code = '"UNAUTHENTICATED"'
+                },
+                path = {'"viewer"'},
+            }},
+            data = "null"
+        }
+
+        local result = json.parse(json_input)
+
+        assert.are.same(solution, result)
     end)
 
     it("invalid json data", function()
