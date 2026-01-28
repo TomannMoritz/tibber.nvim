@@ -8,52 +8,61 @@ local END_BRACKET = '%]'
 
 local QUOTE = '"'
 local COLON = ':'
+local COMMA = ','
 local EMPTY = ""
 
+local STARTING_DEPTH = 1
+local SEPARATOR = 1
 
---- Calculate a list of start and end positions for the next scope layer
---- - Start positions mark the ENTRY point to the next layer
---- - End positions mark the EXIT point back to the current layer
---- Returns an ordered table with a start and end position for each next scope layer
----@param layer string
----@return table|nil
-local function get_layer_positions(layer)
-    -- missing json data
-    local invalid_json = string.find(layer, START_SCOPE) == nil
-    if invalid_json then return nil end
 
-    local positions = {}
+--- Calculate a list of depth and positions based on scope layers
+--- - Brackets increase and decrease the current scope
+--- - Commas indicate more key/value pairs within the same scope level
+--- Returns ordered tables for depth and position data
+---@param data string
+---@return table|nil layer_depths
+---@return table|nil layer_positions
+local function get_layer_positions(data)
+    local invalid_json = string.find(data, START_SCOPE) == nil
+    if invalid_json then return nil, nil end
+
+    local layer_depths = {}
+    local layer_positions = {}
+
     local depth = 0
 
-    for i = 1, #layer do
-        local char = string.sub(layer, i, i)
+    for i = 1, #data do
+        local char = string.sub(data, i, i)
+
+        if char == COMMA then
+            table.insert(layer_depths, depth)
+            table.insert(layer_positions, i)
+        end
 
         if char == START_SCOPE then
-            if depth == 0 then
-                table.insert(positions, i)
-            end
-
             depth = depth + 1
+
+            table.insert(layer_depths, depth)
+            table.insert(layer_positions, i)
         end
 
         if char == END_SCOPE then
-            depth = depth - 1
+            table.insert(layer_depths, depth)
+            table.insert(layer_positions, i)
 
-            if depth == 0 then
-                table.insert(positions, i)
-            end
+            depth = depth - 1
         end
 
         -- to many closing brackets
         invalid_json = depth < 0
-        if invalid_json then return nil end
+        if invalid_json then return nil, nil end
     end
 
     -- missing closing brackets
     invalid_json = depth ~= 0
-    if invalid_json then return nil end
+    if invalid_json then return nil, nil end
 
-    return positions
+    return layer_depths, layer_positions
 end
 
 
@@ -78,72 +87,95 @@ local function get_inside_quotes(text)
 end
 
 
+--- Split a key/value pair into key and value
+---@param data string
+---@return string|nil key
+---@return string value
+local function split_data_pair(data)
+    local sub_layer_position, _ = string.find(data, START_SCOPE)
+    local colon_position = string.find(data, COLON)
+
+    if colon_position == nil then
+        return nil, data
+    end
+
+    if sub_layer_position ~= nil and sub_layer_position < colon_position then
+        return nil, data
+    end
+
+    local key = string.sub(data, 1, colon_position - #COLON)
+    local key_ = get_inside_quotes(key)
+
+    local value = string.sub(data, colon_position + #COLON, -1)
+
+    return key_, value
+end
+
+
 --- Extract and insert a (key, value) pair from the text into the table t
 ---@param t table
 ---@param text string
 local function insert_data_pair(t, text)
-    local index = string.find(text, COLON)
-    if index == nil then
-        table.insert(t, {})
+    local key, value = split_data_pair(text)
+    if key == nil then
+        table.insert(t, value)
         return
     end
 
-    local key = string.sub(text, 0, index - 1)
-    key = get_inside_quotes(key) or EMPTY
+    local num_value = tonumber(value)
+    local value_ = num_value or value
 
-    local str_value = string.sub(text, index + 1, -1)
-    local num_value = tonumber(str_value)
-    local value = num_value or str_value
-
-    t[key] = value
+    t[key] = value_
 end
 
 
---- Parse json data into lua tables
+--- Parse json data recursively into a lua table
 ---@param t table
 ---@param data string
 local function parse(t, data)
     local start_data, _ = string.find(data, START_SCOPE)
     local end_data, _ = string.find(string.reverse(data), END_SCOPE)
-
     if start_data == nil or end_data == nil then return end
-
-    -- remove previous layer scope
-    data = string.sub(data, start_data, -end_data)
-    data = string.sub(data, 2, -2)
 
     local empty_node = #data == 0
     if empty_node then return end
 
-    -- calculate new recursive layers
-    local positions = get_layer_positions(data)
+    local layer_depths, layer_positions = get_layer_positions(data)
+    if layer_depths == nil or layer_positions == nil then return end
 
-    -- leaf node
-    if positions == nil then
-        insert_data_pair(t, data)
-        return
-    end
+    local prev_pos = layer_positions[1] + SEPARATOR
+    local to_deep = false
 
-    local prev_start_pos = 0
-    for i = 1, #positions, 2 do
-        local start_pos = positions[i]
-        local end_pos = positions[i + 1]
+    for i, depth in ipairs(layer_depths) do
+        if depth > STARTING_DEPTH then to_deep = true end
 
-        local next_data = string.sub(data, start_pos, end_pos)
+        local position = layer_positions[i]
 
-        -- update table
-        local layer_label = string.sub(data, prev_start_pos, start_pos - 1)
-        local found_label = get_inside_quotes(layer_label)
-        local next_table = {}
+        if depth == STARTING_DEPTH and prev_pos ~= position then
+            local sub_data = string.sub(data, prev_pos, position - SEPARATOR)
+            prev_pos = position + SEPARATOR
 
-        if found_label == nil then
-            table.insert(t, next_table)
-        else
-            t[found_label] = next_table
+            if sub_data == EMPTY then goto continue end
+
+            if not to_deep then
+                insert_data_pair(t, sub_data)
+
+            else
+                local next_table = {}
+                local key, value = split_data_pair(sub_data)
+
+                if key == nil then
+                    table.insert(t, next_table)
+                    parse(next_table, sub_data)
+                else
+                    t[key] = next_table
+                    parse(next_table, value)
+                end
+            end
+
+            ::continue::
+            to_deep = false
         end
-
-        parse(next_table, next_data)
-        prev_start_pos = end_pos + 1
     end
 end
 
