@@ -24,46 +24,62 @@ end)
 
 
 describe("[tibber_api]", function()
+    local date = "2000-01-01"
+    local time = "01:00:00"
+    local rest = ".000+00:00"
+    local time_sep = 'T'
+
     it("combine days: today", function()
         local energy_data = {
             today = {
-                {"foo"},
-                {"bar"},
+                {total = 1, startsAt = date .. time_sep .. time .. rest},
+                {total = 2, startsAt = date .. time_sep .. time .. rest},
             }
         }
 
         local result = tibber_api._combine_days(energy_data)
-        local solution = {{"foo"}, {"bar"}}
+        local solution = {
+            {value=1, key=time, label=date},
+            {value=2, key=time, label=date}
+        }
         assert.are.same(solution, result)
     end)
 
     it("combine days: tomorrow", function()
         local energy_data = {
             tomorrow = {
-                {"foo"},
-                {"bar"},
+                {total = 1, startsAt = date .. time_sep .. time .. rest},
+                {total = 2, startsAt = date .. time_sep .. time .. rest},
             }
         }
 
         local result = tibber_api._combine_days(energy_data)
-        local solution = {{"foo"}, {"bar"}}
+        local solution = {
+            {value=1, key=time, label=date},
+            {value=2, key=time, label=date}
+        }
         assert.are.same(solution, result)
     end)
 
     it("combine days: today and tomorrow", function()
         local energy_data = {
             today = {
-                {"foo"},
-                {"bar"},
+                {total = 1, startsAt = date .. time_sep .. time .. rest},
+                {total = 2, startsAt = date .. time_sep .. time .. rest},
             },
             tomorrow = {
-                {"0"},
-                {"1"},
+                {total = 3, startsAt = date .. time_sep .. time .. rest},
+                {total = 4, startsAt = date .. time_sep .. time .. rest},
             }
         }
 
         local result = tibber_api._combine_days(energy_data)
-        local solution = {{"foo"}, {"bar"}, {"0"}, {"1"}}
+        local solution = {
+            {value=1, key=time, label=date},
+            {value=2, key=time, label=date},
+            {value=3, key=time, label=date},
+            {value=4, key=time, label=date}
+        }
         assert.are.same(solution, result)
     end)
 
