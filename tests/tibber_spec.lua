@@ -130,15 +130,15 @@ describe("[json]", function()
         local json_input = '{"errors":[{"message":"invalid token","locations":[{"line":1,"column":2}],"path":["viewer"],"extensions":{"code":"UNAUTHENTICATED"}}],"data":null}'
         local solution = {
             errors = {{
-                message = '"invalid token"',
+                message = "invalid token",
                 locations = {{
                     line = 1,
                     column = 2,
                 }},
                 extensions = {
-                    code = '"UNAUTHENTICATED"'
+                    code = "UNAUTHENTICATED"
                 },
-                path = {'"viewer"'},
+                path = {"viewer"},
             }},
             data = "null"
         }
