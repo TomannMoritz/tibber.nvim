@@ -112,20 +112,34 @@ local function split_data_pair(data)
 end
 
 
+--- Insert key/value pair into table based on the specified key
+---@param t table
+---@param key string|nil
+---@param value any
+local function insert_with_without_key(t, key, value)
+    if key == nil then
+        table.insert(t, value)
+    else
+        t[key] = value
+    end
+end
+
+
 --- Extract and insert a (key, value) pair from the text into the table t
 ---@param t table
 ---@param text string
 local function insert_data_pair(t, text)
     local key, value = split_data_pair(text)
-    if key == nil then
-        table.insert(t, value)
+
+    local num_value = tonumber(value)
+    local is_number = num_value ~= nil
+    if is_number then
+        insert_with_without_key(t, key, num_value)
         return
     end
 
-    local num_value = tonumber(value)
-    local value_ = num_value or value
-
-    t[key] = value_
+    local str_value = get_inside_quotes(value) or value
+    insert_with_without_key(t, key, str_value)
 end
 
 
