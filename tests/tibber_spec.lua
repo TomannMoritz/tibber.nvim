@@ -1,6 +1,7 @@
 local floating = require("tibber.floating")
 local tibber_api = require("tibber.tibber_api")
 local json = require("tibber.json")
+local date_time = require("tibber.date_time")
 
 
 describe("[floating window]", function()
@@ -172,3 +173,64 @@ describe("[json]", function()
     end)
 end)
 
+
+--------------------------------------------------
+-- date_time
+
+---comment
+---@param value integer
+---@param pos integer
+---@return string
+local function leading_zeros(value, pos)
+    local text = tostring(value)
+    return string.rep('0', pos - #text) .. text
+end
+
+
+describe("[date_time]", function()
+    it("convert times", function()
+        for hour=0, 23 do
+            for min=0, 59 do
+                for sec=0, 59 do
+                    local input = leading_zeros(hour, 2) .. date_time.TIME_SEPARATOR .. leading_zeros(min, 2) .. date_time.TIME_SEPARATOR .. leading_zeros(sec, 2)
+                    local time_result = date_time.str_to_time(input)
+
+                    local time_solution = {
+                        hour = hour,
+                        min = min,
+                        sec = sec
+                    }
+
+                    assert.are.same(time_solution, time_result)
+
+                    -- reverse
+                    local time_str_result = date_time.time_to_str(time_result)
+                    assert.are.same(input, time_str_result)
+                end
+            end
+        end
+    end)
+
+    it("convert dates", function()
+        for year=1950, 2100 do
+            for month=1, 12 do
+                for day=1, 31 do
+                    local input = leading_zeros(year, 4) .. date_time.DATE_SEPARATOR .. leading_zeros(month, 2) .. date_time.DATE_SEPARATOR .. leading_zeros(day, 2)
+                    local date_result = date_time.str_to_date(input)
+
+                    local date_solution = {
+                        year = year,
+                        month = month,
+                        day = day
+                    }
+
+                    assert.are.same(date_solution, date_result)
+
+                    -- reverse
+                    local date_str_result = date_time.date_to_str(date_result)
+                    assert.are.same(input, date_str_result)
+                end
+            end
+        end
+    end)
+end)
