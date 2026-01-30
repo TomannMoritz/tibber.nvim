@@ -12,3 +12,15 @@ end, {
     }
 )
 
+
+vim.api.nvim_create_user_command("TibberLoad", function(opts)
+    local file_path = opts.args
+
+    require("tibber").toggle_load_data(file_path)
+end, {
+        nargs = 1,
+        complete = "file", -- file and directory paths
+        desc = "Toggle floating window with loaded energy prices"
+    }
+)
+

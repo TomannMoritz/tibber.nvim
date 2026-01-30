@@ -2,6 +2,7 @@ local config = require("tibber.config")
 local floating = require("tibber.floating")
 local tibber_api = require("tibber.tibber_api")
 local convert = require("tibber.convert")
+local json = require("tibber.json")
 
 local M = {}
 local energy_data = {}
@@ -47,6 +48,44 @@ M.toggle_window = function(requery)
         energy_data = price_result.homes[1]
     end
 
+    toggle_display()
+end
+
+
+--- Toggle loaded data
+---@param file_path string
+M.toggle_load_data = function(file_path)
+    local closed_window = not floating.state.win_open
+    if not closed_window then
+        toggle_display()
+        return
+    end
+
+    -- open file
+    local file = io.open(file_path)
+    if file == nil then
+        print("[Tibber.nvim] [!] Could not find file: " .. file_path)
+        return
+    end
+
+    -- read data
+    io.input(file)
+    local data = io.read("*a")
+
+    if data == nil then
+        print("[Tibber.nvim] [!] Could not read data from file: " .. file_path)
+        return
+    end
+
+    local parsed_data = json.parse(data)
+    -- TODO: check if data is valid
+
+    if parsed_data == nil then
+        print("[Tibber.nvim] [!] Could not parse json data: \n" .. data)
+        return
+    end
+
+    energy_data = parsed_data
     toggle_display()
 end
 
