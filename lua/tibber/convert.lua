@@ -65,11 +65,21 @@ end
 
 
 --- Set information for converting energy prices
----@param home_energy_data table
+---@param home_energy_data homes_data
 local function set_price_info(home_energy_data)
     local max_price = get_max_price(home_energy_data)
     local add_line_info = 5
     if (win_height - Config.Height_Offset <= 0) then add_line_info = 0 end
+
+    -- update min bar width
+    for _, data in ipairs(home_energy_data) do
+        local key = data.key
+
+        if key ~= nil then
+            -- keep space before and after the key label
+            Config.Min_Bar_Width = math.max(Config.Min_Bar_Width, #key + #SPACE * 2)
+        end
+    end
 
     max_price = math.max(max_price, Config.Min_Bar_Height / CENTS_A_EURO)
 
@@ -127,54 +137,68 @@ local function right_bar_down(home_energy_data, price_curr_line, hour_index, pri
 end
 
 
---- Get hours string for energy prices
----@param home_energy_data table
+--- Get key string from energy data
+---@param home_energy_data homes_data
 ---@return string
-local function get_info_hours(home_energy_data)
-    local info_hours = ""
+local function get_info_keys(home_energy_data)
+    local info_keys = ""
 
-    for i = 0, #home_energy_data - 1 do
-        if curr_price_info.h_scaling < 5 and i % 2 == 1 then
-            info_hours = info_hours .. string.rep(SPACE, curr_price_info.h_scaling)
-            goto continue
-        end
-
-        local curr_hour = tostring(i % 24)
-
+    for _, data in ipairs(home_energy_data) do
+        local curr_hour = data.key
         local spacing = (curr_price_info.h_scaling - #curr_hour) / 2
         local space_remainder = (curr_price_info.h_scaling - #curr_hour) % 2
 
-
-        info_hours = info_hours .. string.rep(SPACE, spacing) .. curr_hour .. string.rep(SPACE, spacing + space_remainder)
-        ::continue::
+        curr_hour = string.rep(SPACE, spacing + space_remainder) .. curr_hour .. string.rep(SPACE, spacing)
+        info_keys = info_keys .. curr_hour
     end
 
-    return info_hours
+    return info_keys
 end
 
 
---- Get days string for energy prices
---- ISO 8601: YYYY-MM-DD
----@param home_energy_data table
+--- Get label string from energy data
+---@param home_energy_data homes_data
 ---@return string
-local function get_info_days(home_energy_data)
-    local curr_time = os.time()
+local function get_info_labels(home_energy_data)
+    local info_label = EMPTY
+    local curr_label = EMPTY
+    local prev_pos = 1
 
-    local number_days = #home_energy_data / HOURS_A_DAY
-    local space_line = curr_price_info.h_scaling * HOURS_A_DAY
-    local info_days = EMPTY
+    for pos, data in ipairs(home_energy_data) do
+        local label = data.label
 
-    for i = 0, number_days - 1 do
-        local day_time = os.date("*t", curr_time + i * SECONDS_A_DAY)
-        local day_str = tostring(day_time.year) .. "-" .. pad_left(day_time.month) .. "-" .. pad_left(day_time.day)
+        if curr_label == EMPTY then
+            curr_label = label
+        end
 
-        local spacing = (space_line - #day_str - 2) / 2
+        local last_ele = #home_energy_data - 1 == pos
+        if last_ele then
+            local start_offset = 1
+            local end_offset = 1
+            pos = pos +  start_offset + end_offset
+        end
 
-        day_str = Config.Char_Bar_Side .. string.rep(SPACE, spacing) .. day_str .. string.rep(SPACE, spacing) .. Config.Char_Bar_Side
-        info_days = info_days .. day_str
+        -- insert label centered
+        if curr_label ~= label or last_ele then
+            local label_space = (pos - prev_pos) * curr_price_info.h_scaling
+            label_space = label_space - 2
+
+            -- cut long labels
+            curr_label = string.sub(curr_label, 1, label_space)
+            label_space = label_space - #curr_label
+
+            local spacing = label_space / 2
+            local space_remaining = label_space % 2
+
+            local label_str = string.rep(SPACE, spacing + space_remaining) .. curr_label .. string.rep(SPACE, spacing)
+            info_label = info_label .. Config.Char_Bar_Side .. label_str .. Config.Char_Bar_Side
+
+            curr_label = label
+            prev_pos = pos
+        end
     end
 
-    return info_days
+    return info_label
 end
 
 
@@ -186,34 +210,34 @@ local function bottom_info(parsed_pricing, home_energy_data)
     table.insert(parsed_pricing, x_axis)
 
 
-    local info_hours = get_info_hours(home_energy_data)
-    table.insert(parsed_pricing, info_hours)
+    local info_keys = get_info_keys(home_energy_data)
+    table.insert(parsed_pricing, info_keys)
 
 
-    local info_days = get_info_days(home_energy_data)
-    table.insert(parsed_pricing, info_days)
+    local info_labels = get_info_labels(home_energy_data)
+    table.insert(parsed_pricing, info_labels)
 end
 
 
 --- Add energy pricing bars
 ---@param parsed_pricing table
----@param home_energy_data table
+---@param home_energy_data homes_data
 local function bar_data(parsed_pricing, home_energy_data)
     for i = 0, curr_price_info.y_space, 1 do
         local line = EMPTY
         local price_curr_line = curr_price_info.y_space - i
 
-        for hour_index, price_curr_hour in ipairs(home_energy_data) do
-            price_curr_hour = tonumber(math.floor(price_curr_hour.value * curr_price_info.v_scaling)) or -1
+        for hour_index, data in ipairs(home_energy_data) do
+            local curr_price = tonumber(math.floor(data.value * curr_price_info.v_scaling)) or -1
 
             -- Empty space
-            if price_curr_line > price_curr_hour then
+            if price_curr_line > curr_price then
                 line = line .. string.rep(SPACE, curr_price_info.h_scaling)
                 goto continue
             end
 
             -- Max energy bar price
-            if price_curr_line == price_curr_hour then
+            if price_curr_line == curr_price then
                 line = line .. string.rep(Config.Char_Bar_Top, curr_price_info.h_scaling)
                 goto continue
             end
@@ -225,7 +249,7 @@ local function bar_data(parsed_pricing, home_energy_data)
 
 
             -- Add left side
-            local add_line = left_bar_up(home_energy_data, price_curr_line, hour_index, price_curr_hour, mid_section)
+            local add_line = left_bar_up(home_energy_data, price_curr_line, hour_index, curr_price, mid_section)
             line = line .. add_line
 
 
@@ -237,7 +261,7 @@ local function bar_data(parsed_pricing, home_energy_data)
 
 
             -- Add right side
-            add_line = right_bar_down(home_energy_data, price_curr_line, hour_index, price_curr_hour, mid_section)
+            add_line = right_bar_down(home_energy_data, price_curr_line, hour_index, curr_price, mid_section)
             line = line .. add_line
 
 
