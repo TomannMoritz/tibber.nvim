@@ -1,18 +1,31 @@
 local dotenv = require("tibber.dotenv")
 local json = require("tibber.json")
-
+local date_time = require("tibber.date_time")
 
 local M = {}
 local DATA = "data"
 
 
 ---@class homes_data
----@field homes table
+---@field homes energy_data[]
+
+
+---@class energy_data
+---@field title string|nil
+---@field data (ele)[]
+
+---@class ele
+---@field value number
+---@field key string|nil
+---@field label string|nil
 
 
 ---@type homes_data
 local homes_data = {
-    homes = {}
+    homes = {
+        data = {},
+        title = nil
+    }
 }
 
 
@@ -20,7 +33,8 @@ local homes_data = {
 ---@return string query_body
 local query_price_info = function()
     local query_body = [[
-        { "query": "{viewer { homes { currentSubscription { priceInfo { today { total }, tomorrow { total } } } } } }" } ]]
+        { "query": "{viewer { homes { currentSubscription { priceInfo { today { total startsAt }, tomorrow { total startsAt } } } } } }" }
+        ]]
 
     return query_body
 end
@@ -41,27 +55,48 @@ local curl_query = function(query_body)
 end
 
 
+--- Insert energy data (value, key, label)
+---@param t ele[]
+---@param data table
+---@return boolean success
+local function insert_energy_data(t, data)
+    for _, values in ipairs(data) do
+        local price = values.total
+        local label = values.startsAt
+        if price == nil or label == nil then return false end
+
+        local date, time = date_time.split_date_time(label)
+        local date_str = date_time.date_to_str(date)
+        local time_str = date_time.time_to_str(time)
+
+        table.insert(t, {value = price, key = time_str, label = date_str})
+    end
+
+    return true
+end
+
 
 --- Combine energy data for today and tomorrow into one table
 ---@param priceInfo table
----@return table
+---@return ele[]|nil data
 M._combine_days = function(priceInfo)
-    local energy_prices = {}
+    local data = {}
+
     -- Today
     if priceInfo.today ~= nil then
-        for _, price in ipairs(priceInfo.today) do
-            table.insert(energy_prices, price)
+        if not insert_energy_data(data, priceInfo.today) then
+            return nil
         end
     end
 
     -- Tomorrow
     if priceInfo.tomorrow ~= nil then
-        for _, price in ipairs(priceInfo.tomorrow) do
-            table.insert(energy_prices, price)
+        if not insert_energy_data(data, priceInfo.tomorrow) then
+            return nil
         end
     end
 
-    return energy_prices
+    return data
 end
 
 
@@ -80,11 +115,16 @@ local price_info_table = function(query_result)
     end
 
     local homes = decode.data.viewer.homes
-    homes_data = { homes = {}}
+    homes_data = {
+        homes = {
+            data = {},
+            title = nil
+        }
+    }
 
     for _, home in ipairs(homes) do
         local energy_prices = M._combine_days(home.currentSubscription.priceInfo)
-        table.insert(homes_data.homes, energy_prices)
+        table.insert(homes_data.homes, {data = energy_prices})
     end
 
     return true

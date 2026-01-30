@@ -126,8 +126,10 @@ end
 --- Toggle last opened floating window
 ---@param curr_data table
 ---@param config table
+---@param win_title string|nil
 --- -> Create a new floating window if necessary
-M.toggle_window = function(curr_data, config)
+M.toggle_window = function(curr_data, config, win_title)
+    win_title = win_title or "Pricing"
     Config = config
 
     local valid_buffer = vim.api.nvim_buf_is_valid(M.state.buf_nr)
@@ -153,7 +155,6 @@ M.toggle_window = function(curr_data, config)
 
     apply_highlight_groups(curr_data)
 
-    local win_title = "Pricing"
     M.state.win_id = vim.api.nvim_open_win(M.state.buf_nr, true, get_win_config(win_title))
     M.state.win_open = true
 end

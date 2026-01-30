@@ -53,7 +53,7 @@ local function get_max_price(home_energy_data)
     local max_price = 0
 
     for _, price in ipairs(home_energy_data) do
-        local curr_price = tonumber(price.total) or 0
+        local curr_price = tonumber(price.value) or 0
 
         if (max_price == 0 or curr_price > max_price) then
             max_price = curr_price
@@ -93,7 +93,7 @@ end
 local function left_bar_up(home_energy_data, price_curr_line, hour_index, price_curr_hour, mid_section)
     if hour_index - 1 == 0 then return mid_section end
 
-    local prev_price = tonumber(math.floor(home_energy_data[hour_index - 1].total * curr_price_info.v_scaling))
+    local prev_price = tonumber(math.floor(home_energy_data[hour_index - 1].value * curr_price_info.v_scaling))
     if prev_price > price_curr_hour then return mid_section end
 
 
@@ -115,7 +115,7 @@ end
 local function right_bar_down(home_energy_data, price_curr_line, hour_index, price_curr_hour, mid_section)
     if hour_index == #home_energy_data then return mid_section end
 
-    local price_next_hour = tonumber(math.floor(home_energy_data[hour_index + 1].total * curr_price_info.v_scaling))
+    local price_next_hour = tonumber(math.floor(home_energy_data[hour_index + 1].value * curr_price_info.v_scaling))
     if price_next_hour > price_curr_hour then return mid_section end
 
 
@@ -204,7 +204,7 @@ local function bar_data(parsed_pricing, home_energy_data)
         local price_curr_line = curr_price_info.y_space - i
 
         for hour_index, price_curr_hour in ipairs(home_energy_data) do
-            price_curr_hour = tonumber(math.floor(price_curr_hour.total * curr_price_info.v_scaling)) or -1
+            price_curr_hour = tonumber(math.floor(price_curr_hour.value * curr_price_info.v_scaling)) or -1
 
             -- Empty space
             if price_curr_line > price_curr_hour then

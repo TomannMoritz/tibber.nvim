@@ -18,10 +18,10 @@ end
 --- Set buffer and display the floating window
 local function toggle_display()
     local win_width, win_height = floating.get_win_size(config.Config.Win_Width_Percentage, config.Config.Win_Height_Percentage)
-    local parsed_data = convert.convert_data(energy_data.homes[1], config.Config, win_width, win_height)
+    local parsed_data = convert.convert_data(energy_data.data, config.Config, win_width, win_height)
 
     set_highlight_groups()
-    floating.toggle_window(parsed_data, config.Config)
+    floating.toggle_window(parsed_data, config.Config, energy_data.title)
 end
 
 
@@ -44,7 +44,7 @@ M.toggle_window = function(requery)
         -- invalid env: no data/results
         if price_result == nil then return end
 
-        energy_data = price_result
+        energy_data = price_result.homes[1]
     end
 
     toggle_display()
