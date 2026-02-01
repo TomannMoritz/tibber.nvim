@@ -180,4 +180,42 @@ M.get_price_data = function()
 end
 
 
+--- Check/Create valid energy data
+---@param energy_data energy_data
+---@return energy_data|nil valid_data
+---@return string error_msg
+M.get_valid_data = function(energy_data)
+    local error_msg = ""
+    if energy_data.data == nil then return nil, error_msg end
+
+    local valid_data = {}
+    local valid_energy_data = {
+        title = energy_data.title,
+        data = valid_data
+    }
+
+    for pos, ele in ipairs(energy_data.data) do
+        local value = ele.value
+        if value == nil or tonumber(value) == nil then
+            error_msg = "[Tibber.nvim] [!] Invalid input value: \n"
+            error_msg = error_msg .. "  Position: " .. pos
+            error_msg = error_msg .. "\n  Value: " .. tostring(value)
+            return nil, error_msg
+        end
+
+        local key = ele.key or ""
+        local label = ele.label or ""
+        local valid_ele = {
+            value = tonumber(value),
+            key = key,
+            label = label
+        }
+
+        table.insert(valid_data, valid_ele)
+    end
+
+    return valid_energy_data, error_msg
+end
+
+
 return M

@@ -78,14 +78,19 @@ M.toggle_load_data = function(file_path)
     end
 
     local parsed_data = json.parse(data)
-    -- TODO: check if data is valid
-
     if parsed_data == nil then
         print("[Tibber.nvim] [!] Could not parse json data: \n" .. data)
         return
     end
 
-    energy_data = parsed_data
+    -- Check for valid input data
+    local valid_data, error_msg = tibber_api.get_valid_data(parsed_data)
+    if valid_data == nil then
+        print(error_msg)
+        return
+    end
+
+    energy_data = valid_data
     toggle_display()
 end
 
