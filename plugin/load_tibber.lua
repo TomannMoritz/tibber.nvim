@@ -42,7 +42,7 @@ local api_completion_list = {
 
 
 -- Create user commands
-vim.api.nvim_create_user_command("TibberToggle", function(opts)
+vim.api.nvim_create_user_command("TibberToggleAPI", function(opts)
     local args = vim.split(opts.args, white_space)
     args = filter_empty_str(args)
 
@@ -55,23 +55,25 @@ vim.api.nvim_create_user_command("TibberToggle", function(opts)
     -- second argument: requery API
     local requery = #args >= 2 and args[2] == "true"
 
-    require("tibber").toggle_window(resolution, requery)
+    -- lazy-load module
+    require("tibber").toggle_api(resolution, requery)
 end, {
         nargs = "*", -- zero or many arguments
         complete = custom_complete(api_completion_list),
-        desc = "Toggle floating window with energy prices"
+        desc = "Toggle floating window - API energy prices"
     }
 )
 
 
-vim.api.nvim_create_user_command("TibberLoad", function(opts)
+vim.api.nvim_create_user_command("TibberToggleFile", function(opts)
     local file_path = opts.args
 
-    require("tibber").toggle_load_data(file_path)
+    -- lazy-load module
+    require("tibber").toggle_file(file_path)
 end, {
         nargs = 1,
         complete = "file", -- file and directory paths
-        desc = "Toggle floating window with loaded energy prices"
+        desc = "Toggle floating window - File energy prices"
     }
 )
 

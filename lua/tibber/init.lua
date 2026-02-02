@@ -36,7 +36,7 @@ end
 --- Toggle last opened floating window
 ---@param resolution query_resolution
 ---@param requery boolean
-M.toggle_window = function(resolution, requery)
+M.toggle_api = function(resolution, requery)
     local closed_window = not floating.state.win_open
     local is_empty = next(energy_data) == nil
 
@@ -55,7 +55,7 @@ end
 
 --- Toggle loaded data
 ---@param file_path string
-M.toggle_load_data = function(file_path)
+M.toggle_file = function(file_path)
     local closed_window = not floating.state.win_open
     if not closed_window then
         toggle_display()
