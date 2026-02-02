@@ -1,16 +1,19 @@
 ==============================================================================
 INTRODUCTION                                                     *tibber.nvim*
 
-Tibber.nvim is a plugin for Neovim to display the current energy prices. It
-queries the energy price data via the Tibber API. See https://developer.tibber.com/
-Then the data will be converted into a graph that will be displayed in a
-floating window.
+Tibber.nvim is a plugin for Neovim to visualize energy data. It can query
+current energy data via the Tibber API (See https://developer.tibber.com/) or
+load energy data from a specified file. 
+
+This data is then converted into a graph and displayed in a floating window.
 
 
 ==============================================================================
 SETUP                                                           *tibber-setup*
 
-The setup function is only required if the default configuration is not used.
+The setup function is optional and only required to modify the default
+configuration. Without any changes to this configuration, the setup can be skipped.
+
 
 Setup the default configuration with:
 >lua
@@ -42,25 +45,76 @@ Setup the default configuration with:
 FUNCTIONS                                                   *tibber-functions*
 
 
-                                                      *tibber.toggle_window()*
-tibber.toggle_window({requery})
+                                                         *tibber.toggle_api()*
+tibber.toggle_api({resolution}, {requery})
 
-    Toggle floating window with representation of current energy prices.
+    Toggle a floating window with visualizations of current energy prices.
+    Retrieve energy data via the `Tibber API`.
 
 
 Parameters: ~
-    {requery} (boolean): Query the Tibber API for new energy pricing data
+    {resolution} ('HOURLY'|'QUARTERLY'):    Granularity of the queried energy data (optional) (default: 'HOURLY')
+    {requery} (boolean):                    Always query the `Tibber API` for new energy data (optional) (default: false)
 
 
 Examples: ~
 >lua
-    -- Reuse queried data if possible
-    tibber.toggle_window(false)
+    -- Reuse cached data if available
+    tibber.toggle_api('HOURLY', false)
 
-    -- Requery for new data
-    tibber.toggle_window(true)
+    -- Query for new data
+    tibber.toggle_api('HOURLY', true)
 <
 
+
+                                                        *tibber.toggle_file()*
+tibber.toggle_file({file_path})
+
+    Toggle a floating window with visualizations of energy data. Retrieve energy
+    data from a `file`.
+
+
+Parameters: ~
+    {file_path} (string):   Local or global file path to a file containing
+                            energy data. The data must be specified in the
+                            following json format:
+
+Json Format: ~
+
+    {title} (string):       Title of the floating window (optional)
+    {data} (list):          Energy data
+
+Data Format: ~
+    {key} (string):         Key label (x-axis label) based on the key/value pair (optional)
+    {label} (string):       Additional label covering multiple key/value pairs (optional)
+    {value} (float|int):    Energy price value
+
+
+Example: ~
+
+-- Toggle energy data 
+tibber.toggle_file(`~/example_path/example_file.json`)
+
+
+-- Example file with stored energy data
+`~/example_path/example_file.json`
+>json
+    {
+        "title": "Example Title",
+        "data": [
+            {
+                "key": "00:00",
+                "label": "2026",
+                "value": 0.25
+            },
+            {
+                "key": "01:00",
+                "label": "2026",
+                "value": 0.75
+            }, ..
+        ]
+    }
+<
 
 ------------------------------------------------------------------------------
 vim:tw=78:ts=8:ft=help:norl:

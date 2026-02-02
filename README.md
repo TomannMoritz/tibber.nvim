@@ -1,8 +1,8 @@
 # tibber.nvim
 
-Neovim plugin for displaying current energy information.
-Energy prices are queried via the [Tibber API](https://developer.tibber.com/). <br>
-Therefor a Tibber Account/ API Key is required.
+Neovim plugin to visualize current energy information.
+Energy prices can be queried via the [Tibber API](https://developer.tibber.com/) or loaded from a file. <br>
+To query current energy prices a Tibber Account/ API Key is required.
 
 
 ## Installation
@@ -59,6 +59,7 @@ require("tibber").setup({
 
 3. Setup a keymapping
 ```lua
-vim.keymap.set("n", "<leader>te", "<cmd>lua require('tibber').toggle_window()<CR>", { desc = "[T]oggle Tibber [E]nergy" })
+vim.keymap.set("n", "<leader>tte", "<cmd>lua require('tibber').toggle_api()<CR>", { desc = "[T]oggle [T]ibber [E]nergy" })
+vim.keymap.set("n", "<leader>ttf", "<cmd>lua require('tibber').toggle_file(vim.fn.expand('$HOME') .. '/example_file.json')<CR>", { desc = "[T]oggle [T]ibber Example [F]ile in the home directory" })
 ```
 
