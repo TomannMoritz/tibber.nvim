@@ -5,6 +5,20 @@ Energy prices can be queried via the [Tibber API](https://developer.tibber.com/)
 To query current energy prices a Tibber Account/ API Key is required.
 
 
+<details open>
+    <summary><b>Examples</b></summary>
+
+| Tibber API Example |
+|--------------------|
+| ![Tibber API Example](https://github.com/TomannMoritz/Data/blob/main/Tibber.nvim/Tibber-API.png) |
+
+| Tibber File Example |
+|---------------------|
+| ![Tibber File Example](https://github.com/TomannMoritz/Data/blob/main/Tibber.nvim/Tibber-File.png) |
+</details>
+
+
+
 ## Installation
 Install with your package manager with the required dependencies.
 
